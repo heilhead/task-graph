@@ -56,7 +56,7 @@ private:
     Task& then(T taskFn, Task* parentTask = nullptr);
 };
 
-static_assert(sizeof(Task) == std::hardware_destructive_interference_size);
+static_assert(sizeof(Task) == std::hardware_destructive_interference_size, "invalid task size");
 
 class TaskChainBuilder {
 private:

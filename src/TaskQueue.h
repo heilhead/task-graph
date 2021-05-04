@@ -10,7 +10,8 @@ private:
     static constexpr uint32_t MAX_TASK_COUNT = 4096u;
     static constexpr uint32_t TASK_LOOKUP_MASK = MAX_TASK_COUNT - 1u;
 
-    static_assert((MAX_TASK_COUNT != 0) && ((MAX_TASK_COUNT & (MAX_TASK_COUNT - 1)) == 0));
+    static_assert((MAX_TASK_COUNT != 0) && ((MAX_TASK_COUNT & (MAX_TASK_COUNT - 1)) == 0),
+        "max task count should be a power of 2");
 
     std::array<Task*, MAX_TASK_COUNT> tasks;
     std::atomic<int> top;

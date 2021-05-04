@@ -6,7 +6,7 @@
 
 template<typename T>
 class AtomicPoolAllocator {
-    static_assert(sizeof(T) >= sizeof(void*));
+    static_assert(sizeof(T) >= sizeof(void*), "pool item size is too small");
 
 private:
     std::vector<uint8_t> data;
