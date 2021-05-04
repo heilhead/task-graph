@@ -12,6 +12,10 @@ private:
     std::vector<uint8_t> data;
     std::atomic<void*> next;
 
+#if DEBUG
+    int freeItemCount = 0;
+#endif
+
 public:
     explicit AtomicPoolAllocator(size_t elemCount)
         :data(sizeof(T) * elemCount) {
@@ -20,6 +24,9 @@ public:
         for (auto i = 0u; i < elemCount; i++) {
             void** ptr = (void**)(data.data() + i * align);
             *ptr = i < elemCount - 1u ? (void*)(data.data() + (i + 1u) * align) : nullptr;
+#if DEBUG
+            freeItemCount++;
+#endif
         }
 
         next = data.data();
@@ -41,6 +48,10 @@ public:
 
         new(ptr)T(std::forward<Args>(args)...);
 
+#if DEBUG
+        freeItemCount--;
+#endif
+
         return (T*)ptr;
     }
 
@@ -55,5 +66,15 @@ public:
             n = next;
             *(void**)elem = n;
         } while (!next.compare_exchange_strong(n, elem));
+
+#if DEBUG
+        freeItemCount++;
+#endif
     }
+
+#if DEBUG
+    int getFreeItemCount() {
+        return freeItemCount;
+    }
+#endif
 };

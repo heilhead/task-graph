@@ -11,11 +11,11 @@ set(TASKGRAPH_INSTALL_BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
 set(TASKGRAPH_INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
 set(TASKGRAPH_HEADERS_DIR ${PROJECT_SOURCE_DIR}/src)
 
-include_directories(${TASKGRAPH_INSTALL_INCLUDE_DIR})
-include_directories(${TASKGRAPH_HEADERS_DIR})
+if (TASKGRAPH_BuildTests)
+    include_directories(${TASKGRAPH_HEADERS_DIR})
+    add_subdirectory(test)
+else ()
+    include_directories(${TASKGRAPH_INSTALL_INCLUDE_DIR})
+endif ()
 
 add_subdirectory(src)
-
-if (TASKGRAPH_BuildTests)
-    add_subdirectory(test)
-endif ()

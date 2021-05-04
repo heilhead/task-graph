@@ -24,4 +24,5 @@ public:
     void push(Task* task);
     Task* pop();
     Task* steal();
+    int size();
 };

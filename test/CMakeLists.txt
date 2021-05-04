@@ -1,17 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
 project(taskgraph_tests)
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-
-add_subdirectory(lib/googletest)
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
 
 include_directories(${TASKGRAPH_HEADERS_DIR})
-include_directories(lib/googletest/googletest/include)
+include_directories(lib)
 
-set(SOURCE_FILES main.cpp src/taskgraph_tests.cpp)
+set(SOURCE_FILES src/main.cpp
+        lib/catch2/catch.hpp lib/catch2/catch.cpp
+        src/AtomicPoolAllocator_tests.cpp
+        src/TaskQueue_tests.cpp
+        src/tasks_tests.cpp)
 
 add_executable(taskgraph_tests ${SOURCE_FILES})
+target_compile_definitions(taskgraph_tests PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
 
-target_link_libraries(taskgraph_tests taskgraph gtest)
+target_link_libraries(taskgraph_tests taskgraph)
 install(TARGETS taskgraph_tests DESTINATION bin)

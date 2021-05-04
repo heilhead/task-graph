@@ -50,3 +50,7 @@ Task* TaskQueue::steal() {
 
     return nullptr;
 }
+
+int TaskQueue::size() {
+    return std::max(0, bottom - top);
+}
