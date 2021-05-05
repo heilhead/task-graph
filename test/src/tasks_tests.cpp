@@ -1,7 +1,8 @@
 #include <catch2/catch.hpp>
 #include <tasks.h>
+#include <iostream>
 
-TEST_CASE("Task graph", "[TaskGraph]") {
+TEST_CASE("Task graph", "[tasks]") {
     static bool bTestAlive = false;
 
     struct Test {
@@ -24,6 +25,8 @@ TEST_CASE("Task graph", "[TaskGraph]") {
         {
             tasks::init();
 
+            REQUIRE(TaskGraph::getThreadWorker() != nullptr);
+
             auto& task = tasks::chain()
                 .add([test](auto&) {
                     REQUIRE(++test->x == 1);
@@ -38,7 +41,7 @@ TEST_CASE("Task graph", "[TaskGraph]") {
                     REQUIRE(++test->x == 4);
 
                     for (auto i = 0u; i < 1000u; i++) {
-                        tasks::add(task, [test](auto& task) {
+                        tasks::add(task, [test](auto&) {
                             ++test->y;
                             std::this_thread::sleep_for(std::chrono::milliseconds(1));
                         });
@@ -47,6 +50,11 @@ TEST_CASE("Task graph", "[TaskGraph]") {
                 .submit();
 
             tasks::wait(task);
+
+            for (auto& worker : tasks::getGraph().workers) {
+                REQUIRE(worker.getTaskPool()->size() == Worker::TASK_POOL_SIZE);
+            }
+
             tasks::shutdown();
         }
 

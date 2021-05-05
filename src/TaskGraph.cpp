@@ -1,5 +1,4 @@
 #include <cassert>
-#include <random>
 #include "AtomicPoolAllocator.h"
 #include "TaskGraph.h"
 
@@ -39,7 +38,8 @@ void Task::finish() {
     }
 }
 
-bool Task::finished() {
+bool Task::finished() const {
+    // @FIXME calling this from foreground thread may attempt to read child task count after the task has been returned to the pool and possibly reused.
     return childTaskCount == 0;
 }
 
@@ -48,14 +48,16 @@ void Task::setTeardownFunc(TaskCallback inTeardownFn) {
 }
 
 Task& Task::submit() {
-    TaskGraph::get().getThreadWorker()->submit(this);
-
+    auto* worker = TaskGraph::getThreadWorker();
+    assert(worker != nullptr);
+    worker->submit(this);
     return *this;
 }
 
 TaskChainBuilder::TaskChainBuilder(Task* parent) {
-    wrapper = gTaskPool.obtain(nullptr, parent);
-    wrapper->pool = &gTaskPool;
+    auto* pool = Worker::getTaskPool();
+    wrapper = pool->obtain(nullptr, parent);
+    wrapper->pool = pool;
 
     next = nullptr;
     first = nullptr;
@@ -75,8 +77,9 @@ TaskGraph::TaskGraph(uint32_t numThreads)
     :workers(numThreads) {
     assert(numThreads > 0);
 
+    workers[0].start(0, numThreads, Worker::Mode::Foreground);
     for (auto i = 1u; i < numThreads; i++) {
-        workers[i].start();
+        workers[i].start(i, numThreads, Worker::Mode::Background);
     }
 }
 
@@ -90,23 +93,6 @@ void TaskGraph::stop() {
     }
 }
 
-Worker* TaskGraph::getRandomWorker() {
-    std::uniform_int_distribution<std::size_t> dist { 0, workers.size() - 1 };
-    std::default_random_engine randomEngine { std::random_device()() };
-
-    auto idx = dist(randomEngine);
-    auto* worker = &workers[idx];
-    if (worker->running()) {
-        return worker;
-    }
-
-    return nullptr;
-}
-
-Worker* TaskGraph::getThreadWorker() {
-    return getWorker(std::this_thread::get_id());
-}
-
 Worker* TaskGraph::getWorker(std::thread::id id) {
     for (auto& worker : workers) {
         if (worker.id == id) {
@@ -115,6 +101,10 @@ Worker* TaskGraph::getWorker(std::thread::id id) {
     }
 
     return nullptr;
+}
+
+Worker* TaskGraph::getThreadWorker() {
+    return Worker::getThreadWorker();
 }
 
 TaskGraph& TaskGraph::get() {
@@ -131,8 +121,4 @@ void TaskGraph::shutdown() {
     assert(gInstance);
     gInstance->stop();
     gInstance = nullptr;
-}
-
-AtomicPoolAllocator<Task>& TaskGraph::getTaskPool() {
-    return gTaskPool;
 }

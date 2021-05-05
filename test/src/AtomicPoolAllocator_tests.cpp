@@ -3,13 +3,15 @@
 #include <AtomicPoolAllocator.h>
 
 static constexpr size_t MAX_ITEMS = 128;
-struct TestStruct {
-    std::array<uint8_t, 64> data;
+
+struct alignas(std::hardware_destructive_interference_size) TestStruct {
+    int x;
 };
 
 TEST_CASE("Initial fill", "[AtomicPoolAllocator]") {
     AtomicPoolAllocator<TestStruct> pool(MAX_ITEMS);
-    REQUIRE(pool.getFreeItemCount() == MAX_ITEMS);
+
+    REQUIRE(pool.size() == MAX_ITEMS);
 }
 
 TEST_CASE("Obtain & release", "[AtomicPoolAllocator]") {
@@ -20,13 +22,13 @@ TEST_CASE("Obtain & release", "[AtomicPoolAllocator]") {
         vec.push_back(ptr);
     }
 
-    REQUIRE(pool.getFreeItemCount() == 0);
+    REQUIRE(pool.size() == 0);
 
     for (auto* ptr : vec) {
         pool.release(ptr);
     }
 
-    REQUIRE(pool.getFreeItemCount() == MAX_ITEMS);
+    REQUIRE(pool.size() == MAX_ITEMS);
 }
 
 TEST_CASE("Constructors & destructor", "[AtomicPoolAllocator]") {
@@ -60,12 +62,3 @@ TEST_CASE("Constructors & destructor", "[AtomicPoolAllocator]") {
 
     REQUIRE(alive == 0);
 }
-
-//TEST_CASE("Ensure memory bounds", "[AtomicPoolAllocator]") {
-//    SECTION("First") {
-//        AtomicPoolAllocator<TestStruct> pool(MAX_ITEMS);
-//        TestStruct ts {};
-//
-//        REQUIRE_ABORT(pool.release(&ts));
-//    }
-//}

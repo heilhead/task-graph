@@ -2,12 +2,7 @@
 #include <TaskGraph.h>
 #include <TaskQueue.h>
 
-static constexpr size_t MAX_ITEMS = 128;
-struct TestStruct {
-    std::array<uint8_t, 64> data;
-};
-
-TEST_CASE("Deque functionality", "[TaskQueueTest]") {
+TEST_CASE("Deque functionality", "[TaskQueue]") {
     TaskQueue queue;
     std::vector<Task> tasks { 3 };
 

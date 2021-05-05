@@ -6,8 +6,6 @@
 
 template<typename T>
 class AtomicPoolAllocator {
-    static_assert(sizeof(T) >= sizeof(void*), "pool item size is too small");
-
 private:
     std::vector<uint8_t> data;
     std::atomic<void*> next;
@@ -19,6 +17,8 @@ private:
 public:
     explicit AtomicPoolAllocator(size_t elemCount)
         :data(sizeof(T) * elemCount) {
+        static_assert(sizeof(T) >= sizeof(void*), "pool item size is too small");
+
         constexpr auto align = sizeof(T);
 
         for (auto i = 0u; i < elemCount; i++) {
@@ -33,6 +33,7 @@ public:
     }
 
     template<typename ...Args>
+    [[nodiscard]]
     T* obtain(Args&& ...args) {
         void** ptr;
         void* n;
@@ -73,7 +74,7 @@ public:
     }
 
 #if DEBUG
-    int getFreeItemCount() {
+    int size() const {
         return freeItemCount;
     }
 #endif

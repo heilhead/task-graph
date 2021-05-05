@@ -5,6 +5,12 @@
 #include "Worker.h"
 #include "AtomicPoolAllocator.h"
 
+class TaskGraph;
+
+namespace {
+    std::unique_ptr<TaskGraph> gInstance;
+}
+
 class Task {
     friend class TaskChainBuilder;
     friend class TaskGraph;
@@ -31,29 +37,68 @@ public:
 
     void run();
     void finish();
-    bool finished();
+    bool finished() const;
     void setTeardownFunc(TaskCallback inTeardownFn);
 
     template<typename T, typename... Args>
-    void constructData(Args&& ... args);
+    void constructData(Args&& ... args) {
+        constexpr auto size = sizeof(T);
+
+        if constexpr (size <= TASK_PAYLOAD_SIZE) {
+            new(payload.data())T(std::forward<Args>(args)...);
+        } else {
+            *(T**)(payload.data()) = new T(std::forward<Args>(args)...);
+        }
+    }
 
     template<typename T>
-    void destroyData();
+    void destroyData() {
+        constexpr auto size = sizeof(T);
+
+        if constexpr (size <= TASK_PAYLOAD_SIZE) {
+            T* ptr = (T*)payload.data();
+            ptr->~T();
+        } else {
+            T* ptr = *(T**)payload.data();
+            ptr->~T();
+        }
+    }
 
     template<typename T>
-    std::enable_if_t<!std::is_trivially_copyable_v<T>, const T&> getData();
+    std::enable_if_t<!std::is_trivially_copyable_v<T>, const T&> getData() {
+        constexpr auto size = sizeof(T);
+
+        if constexpr (size <= TASK_PAYLOAD_SIZE) {
+            return *(T*)payload.data();
+        } else {
+            return *(T**)payload.data();
+        }
+    }
 
     template<typename T>
-    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= Task::TASK_PAYLOAD_SIZE)> setData(const T& data);
+    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= TASK_PAYLOAD_SIZE)>
+    setData(const T& data) {
+        memcpy(payload.data(), &data, sizeof(data));
+    }
 
     template<typename T>
-    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= Task::TASK_PAYLOAD_SIZE), const T&> getData();
+    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= TASK_PAYLOAD_SIZE), const T&> getData() {
+        return *(T*)payload.data();
+    }
 
     Task& submit();
 
 private:
     template<typename T>
-    Task& then(T taskFn, Task* parentTask = nullptr);
+    Task& then(T inTaskFn, Task* parentTask) {
+        if (next == nullptr) {
+            next = &TaskGraph::allocate(inTaskFn, parentTask);
+        } else {
+            next->then(inTaskFn, parentTask);
+        }
+
+        return *this;
+    }
 };
 
 static_assert(sizeof(Task) == std::hardware_destructive_interference_size, "invalid task size");
@@ -68,7 +113,16 @@ public:
     explicit TaskChainBuilder(Task* parentTask = nullptr);
 
     template<typename T>
-    TaskChainBuilder& add(T fn);
+    TaskChainBuilder& add(T taskFn) {
+        if (first == nullptr) {
+            first = &TaskGraph::allocate(taskFn, wrapper);
+            next = first;
+        } else {
+            next->then(taskFn, wrapper);
+        }
+
+        return *this;
+    }
 
     Task& submit();
 };
@@ -82,106 +136,27 @@ public:
 
     void stop();
 
-    Worker* getRandomWorker();
-    Worker* getThreadWorker();
     Worker* getWorker(std::thread::id id);
 
+    static Worker* getThreadWorker();
     static TaskGraph& get();
     static void init(uint32_t numThreads);
     static void shutdown();
 
     template<typename T>
-    static Task& allocate(T inTaskFn, Task* parentTask = nullptr);
+    static Task& allocate(T inTaskFn, Task* parentTask) {
+        auto* pool = Worker::getTaskPool();
+        auto* task = pool->obtain([](Task& task) {
+            const auto& taskFn = task.template getData<T>();
+            taskFn(task);
+        }, parentTask);
 
-    static AtomicPoolAllocator<Task>& getTaskPool();
+        task->pool = pool;
+        task->template constructData<T>(inTaskFn);
+        task->setTeardownFunc([](Task& task) {
+            task.template destroyData<T>();
+        });
+
+        return *task;
+    }
 };
-
-namespace {
-    thread_local AtomicPoolAllocator<Task> gTaskPool(4096u);
-    std::unique_ptr<TaskGraph> gInstance;
-}
-
-template<typename T, typename... Args>
-void Task::constructData(Args&& ... args) {
-    constexpr auto size = sizeof(T);
-
-    if constexpr (size <= TASK_PAYLOAD_SIZE) {
-        new(payload.data())T(std::forward<Args>(args)...);
-    } else {
-        *(T**)(payload.data()) = new T(std::forward<Args>(args)...);
-    }
-}
-
-template<typename T>
-void Task::destroyData() {
-    constexpr auto size = sizeof(T);
-
-    if constexpr (size <= TASK_PAYLOAD_SIZE) {
-        T* ptr = (T*)payload.data();
-        ptr->~T();
-    } else {
-        T* ptr = *(T**)payload.data();
-        ptr->~T();
-    }
-}
-
-template<typename T>
-std::enable_if_t<!std::is_trivially_copyable_v<T>, const T&> Task::getData() {
-    constexpr auto size = sizeof(T);
-
-    if constexpr (size <= TASK_PAYLOAD_SIZE) {
-        return *(T*)payload.data();
-    } else {
-        return *(T**)payload.data();
-    }
-}
-
-template<typename T>
-std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= Task::TASK_PAYLOAD_SIZE)>
-Task::setData(const T& data) {
-    memcpy(payload.data(), &data, sizeof(data));
-}
-
-template<typename T>
-std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= Task::TASK_PAYLOAD_SIZE), const T&> Task::getData() {
-    return *(T*)payload.data();
-}
-
-template<typename T>
-Task& Task::then(T inTaskFn, Task* parentTask) {
-    if (next == nullptr) {
-        next = &TaskGraph::allocate(inTaskFn, parentTask);
-    } else {
-        next->then(inTaskFn, parentTask);
-    }
-
-    return *this;
-}
-
-template<typename T>
-TaskChainBuilder& TaskChainBuilder::add(T taskFn) {
-    if (first == nullptr) {
-        first = &TaskGraph::allocate(taskFn, wrapper);
-        next = first;
-    } else {
-        next->then(taskFn, wrapper);
-    }
-
-    return *this;
-}
-
-template<typename T>
-Task& TaskGraph::allocate(T inTaskFn, Task* parentTask) {
-    auto* task = gTaskPool.obtain([](Task& task) {
-        const auto& taskFn = task.template getData<T>();
-        taskFn(task);
-    }, parentTask);
-
-    task->pool = &gTaskPool;
-    task->template constructData<T>(inTaskFn);
-    task->setTeardownFunc([](Task& task) {
-        task.template destroyData<T>();
-    });
-
-    return *task;
-}
