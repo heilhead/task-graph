@@ -31,10 +31,6 @@ void Worker::stop() {
     state = State::Stopping;
 }
 
-bool Worker::running() const {
-    return state == State::Running;
-}
-
 void Worker::join() {
     if (thread.joinable()) {
         thread.join();
@@ -93,14 +89,14 @@ Task* Worker::fetchTask() {
         return task;
     }
 
-    auto& workers = TaskGraph::get().workers;
-    for (auto i = 0u; i < workerCount; i++) {
-        auto idx = (i + stealIndex) % workerCount;
-        auto& worker = workers[idx];
-        if (worker.running()) {
-            task = worker.queue.steal();
+    auto* taskGraph = TaskGraph::get();
+    if (taskGraph != nullptr) {
+        auto& workers = taskGraph->workers;
+        for (auto i = 0u; i < workerCount; i++) {
+            auto idx = (i + stealIndex) % workerCount;
+            task = workers[idx].queue.steal();
             if (task != nullptr) {
-                stealIndex = idx;
+                stealIndex = idx + 1u;
                 return task;
             }
         }

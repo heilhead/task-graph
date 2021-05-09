@@ -1,6 +1,6 @@
-#include <catch2/catch.hpp>
 #include <array>
-#include <PoolAllocator.h>
+#include <catch2/catch.hpp>
+#include <taskgraph/PoolAllocator.h>
 
 static constexpr size_t MAX_ITEMS = 128;
 

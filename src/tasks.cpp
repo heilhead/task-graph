@@ -1,6 +1,6 @@
 #include "tasks.h"
 
-TaskGraph& tasks::getGraph() {
+TaskGraph* tasks::getGraph() {
     return TaskGraph::get();
 }
 

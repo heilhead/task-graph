@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
-#include <TaskGraph.h>
-#include <TaskQueue.h>
+#include <taskgraph/TaskGraph.h>
 
 TEST_CASE("Deque functionality", "[TaskQueue]") {
     TaskQueue queue;

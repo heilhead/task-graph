@@ -4,6 +4,7 @@
 #include <thread>
 #include "Worker.h"
 #include "PoolAllocator.h"
+#include "utils.h"
 
 class TaskGraph;
 
@@ -113,6 +114,7 @@ public:
     explicit TaskChainBuilder(PoolItemHandle<Task> parentTask);
 
     template<typename T>
+    [[nodiscard]]
     TaskChainBuilder* add(T taskFn) {
         if (!first) {
             first = TaskGraph::allocate(taskFn, &wrapper);
@@ -143,7 +145,7 @@ public:
     Worker* getWorker(std::thread::id id);
 
     static Worker* getThreadWorker();
-    static TaskGraph& get();
+    static TaskGraph* get();
     static void init(uint32_t numThreads);
     static void shutdown();
 

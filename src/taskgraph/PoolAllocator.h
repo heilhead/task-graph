@@ -73,11 +73,11 @@ public:
         return valid();
     }
 
-    T* operator *() {
+    T* operator*() {
         return dataPtr;
     }
 
-    T* operator ->() {
+    T* operator->() {
         return dataPtr;
     }
 };
@@ -131,8 +131,8 @@ public:
     }
 
     void release(PoolItem<T>* item) {
-        item->version++;
         item->data()->~T();
+        item->version++;
 
         PoolItem<T>* oldNext;
         do {

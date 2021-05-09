@@ -96,6 +96,9 @@ while (handle) {
 }
 ```
 
+NOTE: The tasks that were not submitted or fully executed before calling
+`tasks::shutdown()` may not be destroyed properly and can cause memory leaks.
+
 ## Issues
 
 The library was developed as a research project and may contain issues and bugs,

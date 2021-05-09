@@ -40,7 +40,6 @@ public:
 
     void start(size_t inIndex, size_t inWorkerCount, Mode inMode);
     void stop();
-    bool running() const;
     void join();
     void submit(PoolItemHandle<Task>& task);
     void wait(PoolItemHandle<Task>& task);

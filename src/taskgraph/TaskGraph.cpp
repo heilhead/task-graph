@@ -50,7 +50,6 @@ PoolItemHandle<Task> Task::submit() {
     return handle;
 }
 
-
 TaskChainBuilder::TaskChainBuilder() {
     auto* item = Worker::getTaskPool()->obtain();
     wrapper = PoolItemHandle<Task>(item);
@@ -84,10 +83,12 @@ TaskGraph::TaskGraph(uint32_t numThreads)
 void TaskGraph::stop() {
     for (auto& worker : workers) {
         worker.stop();
+        utils::print("worker ", worker.id, " stopped");
     }
 
     for (auto& worker : workers) {
         worker.join();
+        utils::print("worker ", worker.id, " joined");
     }
 }
 
@@ -105,12 +106,12 @@ Worker* TaskGraph::getThreadWorker() {
     return Worker::getThreadWorker();
 }
 
-TaskGraph& TaskGraph::get() {
-    assert(gInstance);
-    return *gInstance;
+TaskGraph* TaskGraph::get() {
+    return gInstance.get();
 }
 
 void TaskGraph::init(uint32_t numThreads) {
+    utils::print("init");
     assert(!gInstance);
     gInstance = std::make_unique<TaskGraph>(numThreads);
 }
@@ -119,4 +120,5 @@ void TaskGraph::shutdown() {
     assert(gInstance);
     gInstance->stop();
     gInstance = nullptr;
+    utils::print("shutdown");
 }
