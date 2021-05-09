@@ -12,6 +12,6 @@ void tasks::shutdown() {
     TaskGraph::shutdown();
 }
 
-void tasks::wait(Task& task) {
-    TaskGraph::getThreadWorker()->wait(&task);
+void tasks::wait(TaskHandle& task) {
+    TaskGraph::getThreadWorker()->wait(task);
 }

@@ -9,7 +9,7 @@ include_directories(lib)
 
 set(SOURCE_FILES src/main.cpp
         lib/catch2/catch.hpp lib/catch2/catch.cpp
-        src/AtomicPoolAllocator_tests.cpp
+        src/PoolAllocator_tests.cpp
         src/TaskQueue_tests.cpp
         src/tasks_tests.cpp)
 

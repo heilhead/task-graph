@@ -1,12 +1,12 @@
 #pragma once
 
 #include <thread>
-#include "AtomicPoolAllocator.h"
+#include "PoolAllocator.h"
 #include "TaskQueue.h"
 
-class Task;
-
 class Worker {
+    friend class Task;
+
 public:
     static constexpr size_t TASK_POOL_SIZE = 4096u;
 
@@ -32,7 +32,7 @@ public:
 private:
     TaskQueue queue;
     std::atomic<Mode> mode;
-    AtomicPoolAllocator<Task> pool;
+    PoolAllocator<Task> pool;
     size_t stealIndex;
     size_t workerCount;
 
@@ -44,11 +44,11 @@ public:
     void stop();
     bool running() const;
     void join();
-    void submit(Task* task);
-    void wait(Task* task);
+    void submit(PoolItemHandle<Task>& task);
+    void wait(PoolItemHandle<Task>& task);
 
     static Worker* getThreadWorker();
-    static AtomicPoolAllocator<Task>* getTaskPool();
+    static PoolAllocator<Task>* getTaskPool();
 
 private:
     void run();

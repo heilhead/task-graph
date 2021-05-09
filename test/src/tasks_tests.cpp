@@ -27,17 +27,17 @@ TEST_CASE("Task graph", "[tasks]") {
 
             REQUIRE(TaskGraph::getThreadWorker() != nullptr);
 
-            auto& task = tasks::chain()
-                .add([test](auto&) {
+            auto task = tasks::chain()
+                ->add([test](auto&) {
                     REQUIRE(++test->x == 1);
                 })
-                .add([test](auto&) {
+                ->add([test](auto&) {
                     REQUIRE(++test->x == 2);
                 })
-                .add([test](auto&) {
+                ->add([test](auto&) {
                     REQUIRE(++test->x == 3);
                 })
-                .add([test](auto& task) {
+                ->add([test](auto& task) {
                     REQUIRE(++test->x == 4);
 
                     for (auto i = 0u; i < 1000u; i++) {
@@ -47,7 +47,7 @@ TEST_CASE("Task graph", "[tasks]") {
                         });
                     }
                 })
-                .submit();
+                ->submit();
 
             tasks::wait(task);
 

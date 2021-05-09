@@ -1,10 +1,9 @@
 #include <cassert>
-#include "AtomicPoolAllocator.h"
+#include "PoolAllocator.h"
 #include "TaskGraph.h"
 
 Task::Task(Task::TaskCallback inTaskFn, Task* parentTask, Task* nextTask)
-    :taskFn { inTaskFn }, teardownFn { nullptr }, parent { parentTask }, next { nextTask }, childTaskCount { 1 },
-     pool { nullptr }, payload {} {
+    :taskFn { inTaskFn }, parent { parentTask }, next { nextTask }, childTaskCount { 1 }, payload {} {
     if (parent != nullptr) {
         parent->childTaskCount++;
     }
@@ -33,8 +32,9 @@ void Task::finish() {
             next->submit();
         }
 
-        assert(pool != nullptr);
-        pool->release(this);
+        auto* poolItem = PoolItem<Task>::fromData(this);
+        auto* pool = PoolAllocator<Task>::fromItem(poolItem);
+        pool->release(poolItem);
     }
 }
 
@@ -47,30 +47,33 @@ void Task::setTeardownFunc(TaskCallback inTeardownFn) {
     teardownFn = inTeardownFn;
 }
 
-Task& Task::submit() {
+PoolItemHandle<Task> Task::submit() {
     auto* worker = TaskGraph::getThreadWorker();
     assert(worker != nullptr);
-    worker->submit(this);
-    return *this;
+    PoolItemHandle<Task> handle(this);
+    worker->submit(handle);
+    return handle;
 }
 
-TaskChainBuilder::TaskChainBuilder(Task* parent) {
-    auto* pool = Worker::getTaskPool();
-    wrapper = pool->obtain(nullptr, parent);
-    wrapper->pool = pool;
 
-    next = nullptr;
-    first = nullptr;
+TaskChainBuilder::TaskChainBuilder() {
+    auto* item = Worker::getTaskPool()->obtain();
+    wrapper = PoolItemHandle<Task>(item);
 }
 
-Task& TaskChainBuilder::submit() {
+TaskChainBuilder::TaskChainBuilder(PoolItemHandle<Task> parent) {
+    auto* item = Worker::getTaskPool()->obtain(nullptr, *parent);
+    wrapper = PoolItemHandle<Task>(item);
+}
+
+PoolItemHandle<Task> TaskChainBuilder::submit() {
     wrapper->submit();
 
-    if (first != nullptr) {
+    if (first) {
         first->submit();
     }
 
-    return *wrapper;
+    return wrapper;
 }
 
 TaskGraph::TaskGraph(uint32_t numThreads)

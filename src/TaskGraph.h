@@ -3,7 +3,7 @@
 #include <vector>
 #include <thread>
 #include "Worker.h"
-#include "AtomicPoolAllocator.h"
+#include "PoolAllocator.h"
 
 class TaskGraph;
 
@@ -20,14 +20,13 @@ public:
 
 private:
     TaskCallback taskFn;
-    TaskCallback teardownFn;
+    TaskCallback teardownFn = nullptr;
     Task* parent;
     Task* next;
     std::atomic<size_t> childTaskCount;
-    AtomicPoolAllocator<Task>* pool;
 
     static constexpr size_t TASK_METADATA_SIZE =
-        sizeof(taskFn) + sizeof(teardownFn) + sizeof(parent) + sizeof(next) + sizeof(childTaskCount) + sizeof(pool);
+        sizeof(taskFn) + sizeof(teardownFn) + sizeof(parent) + sizeof(next) + sizeof(childTaskCount);
     static constexpr size_t TASK_PAYLOAD_SIZE = std::hardware_destructive_interference_size - TASK_METADATA_SIZE;
 
     std::array<uint8_t, TASK_PAYLOAD_SIZE> payload;
@@ -86,18 +85,18 @@ public:
         return *(T*)payload.data();
     }
 
-    Task& submit();
+    PoolItemHandle<Task> submit();
 
 private:
     template<typename T>
-    Task& then(T inTaskFn, Task* parentTask) {
+    Task* then(T inTaskFn, PoolItemHandle<Task>* parentTask) {
         if (next == nullptr) {
-            next = &TaskGraph::allocate(inTaskFn, parentTask);
+            next = *TaskGraph::allocate(inTaskFn, parentTask);
         } else {
             next->then(inTaskFn, parentTask);
         }
 
-        return *this;
+        return this;
     }
 };
 
@@ -105,26 +104,31 @@ static_assert(sizeof(Task) == std::hardware_destructive_interference_size, "inva
 
 class TaskChainBuilder {
 private:
-    Task* wrapper;
-    Task* first;
-    Task* next;
+    PoolItemHandle<Task> wrapper;
+    PoolItemHandle<Task> first;
+    PoolItemHandle<Task> next;
 
 public:
-    explicit TaskChainBuilder(Task* parentTask = nullptr);
+    TaskChainBuilder();
+    explicit TaskChainBuilder(PoolItemHandle<Task> parentTask);
 
     template<typename T>
-    TaskChainBuilder& add(T taskFn) {
-        if (first == nullptr) {
-            first = &TaskGraph::allocate(taskFn, wrapper);
+    TaskChainBuilder* add(T taskFn) {
+        if (!first) {
+            first = TaskGraph::allocate(taskFn, &wrapper);
             next = first;
         } else {
-            next->then(taskFn, wrapper);
+            next->then(taskFn, &wrapper);
         }
 
-        return *this;
+        return this;
     }
 
-    Task& submit();
+    PoolItemHandle<Task> submit();
+
+    TaskChainBuilder* operator->() {
+        return this;
+    }
 };
 
 class TaskGraph {
@@ -144,19 +148,22 @@ public:
     static void shutdown();
 
     template<typename T>
-    static Task& allocate(T inTaskFn, Task* parentTask) {
+    static PoolItemHandle<Task> allocate(T inTaskFn, PoolItemHandle<Task>* parentTaskHandle) {
         auto* pool = Worker::getTaskPool();
-        auto* task = pool->obtain([](Task& task) {
+        auto* parentTask = parentTaskHandle != nullptr ? parentTaskHandle->data() : nullptr;
+        auto* item = pool->obtain([](Task& task) {
             const auto& taskFn = task.template getData<T>();
             taskFn(task);
         }, parentTask);
 
-        task->pool = pool;
+        // @TODO Throw if `item == nullptr` (pool is empty).
+
+        auto* task = item->data();
         task->template constructData<T>(inTaskFn);
         task->setTeardownFunc([](Task& task) {
             task.template destroyData<T>();
         });
 
-        return *task;
+        return PoolItemHandle<Task>(item);
     }
 };

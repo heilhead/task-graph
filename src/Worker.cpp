@@ -41,15 +41,15 @@ void Worker::join() {
     }
 }
 
-void Worker::submit(Task* task) {
-    queue.push(task);
+void Worker::submit(PoolItemHandle<Task>& task) {
+    queue.push(*task);
 }
 
-void Worker::wait(Task* task) {
+void Worker::wait(PoolItemHandle<Task>& task) {
     assert(mode == Mode::Foreground);
 
     state = State::Running;
-    while (!task->finished()) {
+    while (task.valid()) {
         if (Task* nextTask = fetchTask()) {
             nextTask->run();
 
@@ -72,7 +72,7 @@ void Worker::run() {
     }
 
     while (state == State::Running) {
-        if (Task* nextTask = fetchTask()) {
+        if (auto* nextTask = fetchTask()) {
             nextTask->run();
 
 #if DEBUG
@@ -113,7 +113,7 @@ Worker* Worker::getThreadWorker() {
     return gThreadWorker;
 }
 
-AtomicPoolAllocator<Task>* Worker::getTaskPool() {
+PoolAllocator<Task>* Worker::getTaskPool() {
     assert(gThreadWorker != nullptr);
     return &gThreadWorker->pool;
 }
