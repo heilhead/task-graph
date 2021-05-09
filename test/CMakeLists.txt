@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(taskgraph_tests)
 
-#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
-
 include_directories(${TASKGRAPH_HEADERS_DIR})
 include_directories(lib)
 

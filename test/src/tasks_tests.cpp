@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 #include <tasks.h>
-#include <iostream>
 
 TEST_CASE("Task graph", "[tasks]") {
     static bool bTestAlive = false;

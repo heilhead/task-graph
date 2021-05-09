@@ -3,11 +3,11 @@ project(taskgraph C CXX)
 
 set(SOURCE_FILES
         PoolAllocator.h
-    TaskGraph.cpp TaskGraph.h
-    TaskQueue.cpp TaskQueue.h
-    tasks.cpp tasks.h
-    Worker.cpp Worker.h
-)
+        TaskGraph.cpp TaskGraph.h
+        TaskQueue.cpp TaskQueue.h
+        tasks.cpp tasks.h
+        Worker.cpp Worker.h
+        )
 
 add_library(taskgraph SHARED STATIC ${SOURCE_FILES})
 target_compile_definitions(taskgraph PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
