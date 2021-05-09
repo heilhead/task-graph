@@ -5,14 +5,12 @@
 #include "TaskQueue.h"
 
 class Worker {
-    friend class Task;
-
 public:
     static constexpr size_t TASK_POOL_SIZE = 4096u;
 
     enum class Mode {
-        Background,
-        Foreground
+        Background = 0,
+        Foreground = 1
     };
 
     enum class State {

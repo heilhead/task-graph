@@ -26,7 +26,8 @@ private:
     std::atomic<size_t> childTaskCount;
 
     static constexpr size_t TASK_METADATA_SIZE =
-        sizeof(taskFn) + sizeof(teardownFn) + sizeof(parent) + sizeof(next) + sizeof(childTaskCount);
+        sizeof(taskFn) + sizeof(teardownFn) + sizeof(parent) + sizeof(next) // NOLINT(bugprone-sizeof-expression)
+            + sizeof(childTaskCount);
     static constexpr size_t TASK_PAYLOAD_SIZE = std::hardware_destructive_interference_size - TASK_METADATA_SIZE;
 
     std::array<uint8_t, TASK_PAYLOAD_SIZE> payload;
@@ -36,7 +37,6 @@ public:
 
     void run();
     void finish();
-    bool finished() const;
     void setTeardownFunc(TaskCallback inTeardownFn);
 
     template<typename T, typename... Args>
@@ -64,7 +64,7 @@ public:
     }
 
     template<typename T>
-    std::enable_if_t<!std::is_trivially_copyable_v<T>, const T&> getData() {
+    std::enable_if_t<!std::is_trivially_copyable_v<T>, const T&> getData() const {
         constexpr auto size = sizeof(T);
 
         if constexpr (size <= TASK_PAYLOAD_SIZE) {
@@ -75,13 +75,13 @@ public:
     }
 
     template<typename T>
-    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= TASK_PAYLOAD_SIZE)>
-    setData(const T& data) {
+    [[maybe_unused]]
+    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= TASK_PAYLOAD_SIZE)> setData(const T& data) {
         memcpy(payload.data(), &data, sizeof(data));
     }
 
     template<typename T>
-    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= TASK_PAYLOAD_SIZE), const T&> getData() {
+    std::enable_if_t<std::is_trivially_copyable_v<T> && (sizeof(T) <= TASK_PAYLOAD_SIZE), const T&> getData() const {
         return *(T*)payload.data();
     }
 

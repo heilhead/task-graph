@@ -38,11 +38,6 @@ void Task::finish() {
     }
 }
 
-bool Task::finished() const {
-    // @FIXME calling this from foreground thread may attempt to read child task count after the task has been returned to the pool and possibly reused.
-    return childTaskCount == 0;
-}
-
 void Task::setTeardownFunc(TaskCallback inTeardownFn) {
     teardownFn = inTeardownFn;
 }

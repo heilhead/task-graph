@@ -69,7 +69,7 @@ public:
         return PoolItem<T>::fromData(dataPtr);
     }
 
-    operator bool() {
+    explicit operator bool() {
         return valid();
     }
 
@@ -143,11 +143,11 @@ public:
         currSize++;
     }
 
-    size_t size() const {
+    [[nodiscard]] size_t size() const {
         return currSize;
     }
 
-    size_t capacity() const {
+    [[nodiscard]] size_t capacity() const {
         return maxCapacity;
     }
 
