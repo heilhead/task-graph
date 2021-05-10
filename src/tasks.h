@@ -32,17 +32,18 @@ namespace tasks {
 
     template<typename T>
     inline TaskHandle add(T taskFn) {
-        return create(taskFn)->submit();
+        return create<T>(taskFn)->submit();
     }
 
     template<typename T>
     inline TaskHandle add(TaskHandle& parent, T taskFn) {
-        return create(parent, taskFn)->submit();
+        return create<T>(parent, taskFn)->submit();
     }
 
     template<typename T>
     inline TaskHandle add(Task& parent, T taskFn) {
-        return create(TaskHandle(&parent), taskFn)->submit();
+        auto handle = TaskHandle(&parent);
+        return create<T>(handle, taskFn)->submit();
     }
 
     [[nodiscard]]
