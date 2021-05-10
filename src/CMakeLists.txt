@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(taskgraph C CXX)
+project(taskgraph CXX)
 
 set(SOURCE_FILES
         taskgraph/PoolAllocator.h
