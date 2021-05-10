@@ -9,13 +9,24 @@ set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
 set(TASKGRAPH_INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(TASKGRAPH_INSTALL_BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
 set(TASKGRAPH_INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
-set(TASKGRAPH_HEADERS_DIR ${PROJECT_SOURCE_DIR}/src)
 
-add_subdirectory(src)
+set(SOURCE_FILES
+        include/taskgraph/PoolAllocator.h
+        include/taskgraph/TaskGraph.h
+        include/taskgraph/TaskQueue.h
+        include/taskgraph/utils.h
+        include/taskgraph/Worker.h
+        include/tasks.h
+        src/taskgraph/TaskGraph.cpp
+        src/taskgraph/TaskQueue.cpp
+        src/taskgraph/Worker.cpp
+        src/tasks.cpp)
 
-target_include_directories(taskgraph PUBLIC ${TASKGRAPH_INSTALL_INCLUDE_DIR})
+add_library(${PROJECT_NAME} SHARED STATIC ${SOURCE_FILES})
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
+target_include_directories(${PROJECT_NAME} PUBLIC ${TASKGRAPH_INSTALL_INCLUDE_DIR})
 
 if (TASKGRAPH_BuildTests)
-    target_include_directories(taskgraph PRIVATE BEFORE ${TASKGRAPH_HEADERS_DIR})
     add_subdirectory(test)
 endif ()

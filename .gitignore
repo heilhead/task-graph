@@ -43,13 +43,10 @@
 **/CMakeScripts
 **/compile_commands.json
 
-include/taskgraph/*
-
-## Local
+# Local
 
 .idea
 build/**/*
-include/*
 lib/*
 bin/*
 test/test_runner

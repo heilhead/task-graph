@@ -1,6 +1,6 @@
 #include <cassert>
-#include "Worker.h"
-#include "TaskGraph.h"
+#include "taskgraph/Worker.h"
+#include "taskgraph/TaskGraph.h"
 
 Worker::Worker()
     :pool(TASK_POOL_SIZE), queue {}, id { std::this_thread::get_id() }, mode { Mode::Foreground },

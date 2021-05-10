@@ -1,6 +1,6 @@
 #include <cassert>
-#include "PoolAllocator.h"
-#include "TaskGraph.h"
+#include "taskgraph/PoolAllocator.h"
+#include "taskgraph/TaskGraph.h"
 
 Task::Task(Task::TaskCallback inTaskFn, Task* parentTask, Task* nextTask)
     :taskFn { inTaskFn }, parent { parentTask }, next { nextTask }, childTaskCount { 1 }, payload {} {
