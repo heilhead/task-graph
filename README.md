@@ -96,8 +96,8 @@ while (handle) {
 }
 ```
 
-NOTE: The tasks that were not submitted or fully executed before calling
-`tasks::shutdown()` may not be destroyed properly and can cause memory leaks.
+NOTE: Shutting down the task graph with unsubmitted tasks may not release resources
+associated with those tasks and can cause memory leaks.
 
 ## Issues
 
