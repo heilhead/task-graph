@@ -1,6 +1,6 @@
 # TaskGraph
 
-A lambda-based lock-free work-stealing task graph.
+A lambda-based multi-threaded lock-free work-stealing task graph.
 
 ## Installation
 

@@ -9,7 +9,6 @@ Worker::Worker()
 
 Worker::~Worker() {
     if (mode == Mode::Foreground) {
-        assert(gThreadWorker != nullptr);
         gThreadWorker = nullptr;
     }
 }
@@ -59,6 +58,15 @@ void Worker::wait(PoolItemHandle<Task>& task) {
     state = State::Idle;
 }
 
+void Worker::clear() {
+    assert(mode == Mode::Foreground);
+    assert(gThreadWorker == this);
+
+    while(auto* task = fetchTask()) {
+        task->finish();
+    }
+}
+
 void Worker::run() {
     gThreadWorker = this;
     id = thread.get_id();
@@ -96,7 +104,7 @@ Task* Worker::fetchTask() {
             auto idx = (i + stealIndex) % workerCount;
             task = workers[idx].queue.steal();
             if (task != nullptr) {
-                stealIndex = idx + 1u;
+                stealIndex = idx;
                 return task;
             }
         }

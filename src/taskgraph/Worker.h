@@ -43,6 +43,7 @@ public:
     void join();
     void submit(PoolItemHandle<Task>& task);
     void wait(PoolItemHandle<Task>& task);
+    void clear();
 
     static Worker* getThreadWorker();
     static PoolAllocator<Task>* getTaskPool();

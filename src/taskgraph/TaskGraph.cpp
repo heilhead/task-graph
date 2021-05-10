@@ -81,15 +81,18 @@ TaskGraph::TaskGraph(uint32_t numThreads)
 }
 
 void TaskGraph::stop() {
+    // Signal workers to finish what they're doing and stop.
     for (auto& worker : workers) {
         worker.stop();
-        utils::print("worker ", worker.id, " stopped");
     }
 
+    // Wait for workers to actually finish.
     for (auto& worker : workers) {
         worker.join();
-        utils::print("worker ", worker.id, " joined");
     }
+
+    // Use the foreground worker to drain all queues of tasks to release resources.
+    workers[0].clear();
 }
 
 Worker* TaskGraph::getWorker(std::thread::id id) {
@@ -111,7 +114,6 @@ TaskGraph* TaskGraph::get() {
 }
 
 void TaskGraph::init(uint32_t numThreads) {
-    utils::print("init");
     assert(!gInstance);
     gInstance = std::make_unique<TaskGraph>(numThreads);
 }
@@ -120,5 +122,4 @@ void TaskGraph::shutdown() {
     assert(gInstance);
     gInstance->stop();
     gInstance = nullptr;
-    utils::print("shutdown");
 }
